@@ -1,4 +1,5 @@
 # sp6-2_smart-table_starter
+https://github.com/AlsuFakhrutdinova/smart-table 
 
 > Интерактивная таблица данных с поиском, фильтрацией, сортировкой и пагинацией
 
