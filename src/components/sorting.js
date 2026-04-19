@@ -1,17 +1,29 @@
-import { sortCollection, sortMap } from "../lib/sort.js";
+import { sortMap } from "../lib/sort.js";
 
+/**
+ * Инициализация сортировки
+ * @param {HTMLElement[]} columns - массив кнопок сортировки
+ * @returns {Function} функция applySorting для для последовательного формирования параметров запроса
+ */
 export function initSorting(columns) {
-  return (data, state, action) => {
+  /**
+   * Формирует параметр сортировки для запроса
+   * @param {Object} query - текущие параметры запроса
+   * @param {Object} state - состояние формы
+   * @param {HTMLButtonElement} [action] - элемент, вызвавший действие (кнопка сортировки)
+   * @returns {Object} новый объект query с добавленным sort
+   */
+  return (query, state, action) => {
     let field = null;
     let order = null;
 
     if (action && action.name === "sort") {
-      // @todo: #3.1 — запомнить выбранный режим сортировки
-      action.dataset.value = sortMap[action.dataset.value]; // Сохраним и применим как текущее состояние из карты
+      // Обновляем состояние нажатой кнопки
+      action.dataset.value = sortMap[action.dataset.value];
       field = action.dataset.field; // Информация о сортируемом поле есть также в кнопке
       order = action.dataset.value; // Направление заберем прямо из датасета для точности
 
-      // @todo: #3.2 — сбросить сортировки остальных колонок
+      // сбрасываем сортировки остальных колонок
       columns.forEach((column) => {
         // Перебираем элементы (в columns у нас массив кнопок)
         if (column.dataset.field !== action.dataset.field) {
@@ -20,7 +32,7 @@ export function initSorting(columns) {
         }
       });
     } else {
-      // @todo: #3.3 — получить выбранный режим сортировки
+      // ищем активную кнопку
       columns.forEach((column) => {
         // Перебираем все кнопки сортировки
         if (column.dataset.value !== "none") {
@@ -31,6 +43,8 @@ export function initSorting(columns) {
       });
     }
 
-    return sortCollection(data, field, order);
+    const sort = field && order !== "none" ? `${field}:${order}` : null; // сохраним в переменную параметр сортировки в виде field:direction
+
+    return sort ? Object.assign({}, query, { sort }) : query; // по общему принципу, если есть сортировка, добавляем, если нет, то не трогаем query
   };
 }

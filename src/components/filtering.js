@@ -1,36 +1,40 @@
-import { createComparison, defaultRules } from "../lib/compare.js";
+/**
+ * Инициализация фильтрации
+ * @param {Object} elements - DOM-элементы фильтров (собранные по data-name)
+ * @returns {{ updateIndexes: Function, applyFiltering: Function }}
+ */
 
-// @todo: #4.3 — настроить компаратор
-const compare = createComparison(defaultRules);
-
-export function initFiltering(elements, indexes) {
-  // @todo: #4.1 — заполнить выпадающие списки опциями
-  Object.keys(indexes) // Получаем ключи объекта
-    .forEach((elementName) => {
-      // Перебираем по именам
-      elements[elementName].append(
-        // в каждый элемент добавляем опции
-        ...Object.values(indexes[elementName]) // формируем массив имён, значений опций
-          .map((name) => {
-            // используйте name как значение и текстовое содержимое
-            // @todo: создать и вернуть тег опции
-            const option = document.createElement("option");
-            option.value = name;
-            option.textContent = name;
-            return option;
+export function initFiltering(elements) {
+  /**
+   * Заполняет выпадающие списки опциями
+   * @param {Object} elements - элементы фильтров
+   * @param {Object} indexes - объект с массивами значений для каждого селекта
+   */
+  const updateIndexes = (elements, indexes) => {
+    Object.keys(indexes) // Получаем ключи объекта
+      .forEach((elementName) => {
+        // Перебираем по именам
+        elements[elementName].append(
+          ...Object.values(indexes[elementName]).map((name) => {
+            // name как значение и текстовое содержимое
+            const el = document.createElement("option");
+            el.textContent = name;
+            el.value = name;
+            return el;
           }),
-      );
-    });
+        );
+      });
+  };
 
-  return (data, state, action) => {
-    // @todo: #4.2 — обработать очистку поля
-    /*Когда пользователь нажимает на крестик:
-    1. Срабатывает событие submit (так как кнопка type="submit")
-    2. В action попадает эта кнопка
-    3. Код получает action и обрабатывает очистку
-    4. После очистки данные возвращаются без изменений (фильтр снят) */
-
-    // Проверяем наличие действия, и что это действие - кнопка с именем clear
+  /**
+   * Формирует параметры фильтрации для запроса
+   * @param {Object} query - текущие параметры запроса
+   * @param {Object} state - состояние формы
+   * @param {HTMLButtonElement} [action] - кнопка, вызвавшая действие (например, clear)
+   * @returns {Object} новый объект query с добавленными параметрами фильтрации
+   */
+  const applyFiltering = (query, state, action) => {
+    // проверяем наличие действия, и что это действие - кнопка с именем clear
     if (action && action.name === "clear") {
       // находим родительский label и в нём input
       const input = action.parentElement.querySelector("input");
@@ -38,16 +42,33 @@ export function initFiltering(elements, indexes) {
       if (input) {
         input.value = ""; // очищаем input
 
-        // Получаем поле из data-field
         const field = action.dataset.field;
         const stateField = `searchBy${field.charAt(0).toUpperCase() + field.slice(1)}`;
         state[stateField] = "";
       }
       // Возвращаем данные без изменений (фильтрация не применяется)
-      return data;
+      return query;
     }
 
-    // @todo: #4.5 — отфильтровать данные, используя компаратор
-    return data.filter((row) => compare(row, state));
+    const filter = {};
+    Object.keys(elements).forEach((key) => {
+      if (elements[key]) {
+        if (
+          ["INPUT", "SELECT"].includes(elements[key].tagName) &&
+          elements[key].value
+        ) {
+          // ищем поля ввода в фильтре с непустыми данными
+          filter[`filter[${elements[key].name}]`] = elements[key].value; // чтобы сформировать в query вложенный объект фильтра
+        }
+      }
+    });
+    return Object.keys(filter).length
+      ? Object.assign({}, query, filter)
+      : query;
+  };
+
+  return {
+    updateIndexes,
+    applyFiltering,
   };
 }
